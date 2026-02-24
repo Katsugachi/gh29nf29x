@@ -498,10 +498,6 @@
     <div id="result-batch"></div>
   </div>
 </main>
-
-<footer>HSIE Referencing Guide · APA 7th Edition · For academic use only</footer>
-
-<!-- Hidden rich-text copy canvas -->
 <div id="copy-canvas" style="position:absolute;left:-9999px;top:0;"></div>
 
 <script>
@@ -587,7 +583,6 @@ ${typeHint && typeHint !== 'auto' ? `Source type hint: ${typeHint}` : ''}
 Do NOT guess or infer from the URL alone. Read the page first, extract the metadata, then format the reference exactly per the HSIE guide.
 If a field truly cannot be found after reading, use (n.d.) for date or start with title if no author.`;
 
-  // First call: let Claude use web_search to read the page
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
