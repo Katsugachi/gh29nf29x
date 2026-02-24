@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSIE James Ruse Referencing Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <style>
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gray: #f9f9f9;
+            --border: #cccccc;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--white);
+            color: var(--black);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            border: 2px solid var(--black);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid var(--black);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        button {
+            background-color: var(--white);
+            color: var(--black);
+            border: 1px solid var(--black);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--black);
+            color: var(--white);
+        }
+
+        textarea, input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid var(--black);
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- STRICT HSIE PDF FORMATTING RULES --- */
+        .output-area {
+            margin-top: 40px;
+            padding: 40px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            /* 11-point Times New Roman */
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt; 
+            /* Black text only */
+            color: #000000;
+            /* Double spacing */
+            line-height: 2; 
+        }
+
+        .output-title {
+            /* Bold, centred, capitalised */
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            font-size: 11pt; 
+        }
+
+        .reference-entry {
+            /* Indent second and subsequent lines (Hanging Indent) */
+            padding-left: 36px;
+            text-indent: -36px;
+            margin-bottom: 0; 
+            word-wrap: break-word;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>James Ruse Referencing Generator</h1>
+    </div>
+
+    <div class="controls">
+        <button onclick="toggleMode('single')" id="btn-single">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            Single URL
+        </button>
+        <button onclick="toggleMode('batch')" id="btn-batch">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+            Batch URLs
+        </button>
+    </div>
+
+    <div id="input-section">
+        <input type="text" id="single-input" placeholder="Paste a single URL here (e.g., https://www.youtube.com/...)">
+        <textarea id="batch-input" class="hidden" rows="6" placeholder="Paste multiple URLs here, separated by a new line..."></textarea>
+        
+        <button onclick="processURLs()" style="width: 100%; justify-content: center; padding: 15px; font-size: 16px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+            Generate References
+        </button>
+    </div>
+
+    <div id="output-container" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px;">
+            <p style="font-size: 12px; color: gray;"><i>done</i></p>
+            <button onclick="copyToClipboard()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                Copy to Clipboard
+            </button>
+        </div>
+        
+        <div class="output-area" id="reference-list">
+            </div>
+    </div>
+</div>
+
+<script>
+    let mode = 'single';
+
+    function toggleMode(selectedMode) {
+        mode = selectedMode;
+        document.getElementById('single-input').classList.toggle('hidden', mode === 'batch');
+        document.getElementById('batch-input').classList.toggle('hidden', mode === 'single');
+    }
+
+    async function processURLs() {
+        const outputContainer = document.getElementById('output-container');
+        const refList = document.getElementById('reference-list');
+        
+        let urls = [];
+        if (mode === 'single') {
+            urls = [document.getElementById('single-input').value];
+        } else {
+            urls = document.getElementById('batch-input').value.split('\n');
+        }
+
+        // Clean URLs
+        urls = urls.map(u => u.trim()).filter(u => u.length > 0);
+        if (urls.length === 0) return alert("Please enter at least one URL.");
+
+        refList.innerHTML = '<div class="output-title">Generating...</div>';
+        outputContainer.classList.remove('hidden');
+
+        let references = [];
+
+        // In a real application, you would pass these URLs to a Cloudflare Worker / Backend API
+        // to scrape the OpenGraph tags (Author, Date, Title, Site Name).
+        // Here we simulate that data extraction based on the URL type.
+        for (let url of urls) {
+            let metadata = await simulateCloudflareAPI(url);
+            let formattedString = formatReference(metadata);
+            references.push({ rawAuth: metadata.author, html: formattedString });
+        }
+
+        // HSIE Rule: List all references alphabetically by author's surname or organisation name
+        references.sort((a, b) => a.rawAuth.localeCompare(b.rawAuth));
+
+        // HSIE Rule: Label the reference list REFERENCES (bold, centred, capitalised)
+        let finalHTML = `<div class="output-title">REFERENCES</div>`;
+        
+        references.forEach(ref => {
+            finalHTML += `<div class="reference-entry">${ref.html}</div>`;
+        });
+
+        refList.innerHTML = finalHTML;
+    }
+
+    // This mimics your backend scraper
+    function simulateCloudflareAPI(url) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                let lowerUrl = url.toLowerCase();
+                let isYouTube = lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be');
+                let domain = new URL(url).hostname.replace('www.', '');
+
+                if (isYouTube) {
+                    resolve({
+                        type: 'youtube',
+                        author: "ChannelName", // Scraped username
+                        year: "2023",
+                        monthDay: "March 15",
+                        title: "Documentary footage of historical event",
+                        url: url
+                    });
+                } else {
+                    resolve({
+                        type: 'webpage',
+                        author: domain.charAt(0).toUpperCase() + domain.slice(1).split('.')[0], // Assuming Org Author
+                        year: "2022",
+                        monthDay: "June 10",
+                        title: "Overview of historical impacts",
+                        siteName: domain,
+                        url: url
+                    });
+                }
+            }, 500); // simulate network delay
+        });
+    }
+
+    // Applies the exact formatting rules from the PDF based on the scraped source type
+    function formatReference(data) {
+        if (data.type === 'youtube') {
+            // HSIE Rule for YouTube: Author, A. (Year, Month Day). Title [Video]. YouTube. URL
+            return `${data.author}. (${data.year}, ${data.monthDay}). ${capitalizeFirstLetter(data.title)} [Video]. <span class="italic">YouTube</span>. ${data.url}`;
+        } else {
+            // HSIE Rule for Webpage (Org as author): Organisation. (Year, Month Day). Title of webpage. Title of Website. URL
+            return `${data.author}. (${data.year}, ${data.monthDay}). ${capitalizeFirstLetter(data.title)}. <span class="italic">${capitalizeFirstLetter(data.siteName)}</span>. ${data.url}`;
+        }
+    }
+
+    // HSIE Rule: Capitalise only the first word of a book or article title.
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+    }
+
+    function copyToClipboard() {
+        const refList = document.getElementById('reference-list');
+        
+        // Creating a temporary container to ensure rich-text formatting (italics, fonts) copies over to Word/Docs
+        const range = document.createRange();
+        range.selectNodeContents(refList);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        try {
+            document.execCommand('copy');
+            alert('Copied successfully! Paste this directly into your document to keep the Times New Roman, hanging indents, and double spacing.');
+        } catch (err) {
+            alert('Failed to copy. Please highlight the text and copy manually.');
+        }
+        selection.removeAllRanges();
+    }
+</script>
+
+</body>
+</html>
